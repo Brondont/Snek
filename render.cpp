@@ -1,8 +1,16 @@
 #include "render.hpp"
+#include <cstdlib>
+#include <ctime>
+#include <vector>
+#include <algorithm>
+#include <deque>
 
-SDL_Rect head {250, 250, 10, 10};
+SDL_Rect head{250, 250, 10, 10};
+SDL_Rect apple{(rand() % 40 + 1)*10, (rand() % 40 + 1)*10, 10, 10};
+std::deque<SDL_Rect> body ={}; 
 
-RendererWindow::RendererWindow(int Width, int Height,const char *title)
+int bodySize = 1;
+RendererWindow::RendererWindow(int Width, int Height, const char *title)
 {
     window = SDL_CreateWindow(
         title,
@@ -15,7 +23,7 @@ RendererWindow::RendererWindow(int Width, int Height,const char *title)
     {
         std::cout << "Window was not created. " << SDL_GetError() << std::endl;
     }
-    renderer = SDL_CreateRenderer(window, -1,0);
+    renderer = SDL_CreateRenderer(window, -1, 0);
     if (renderer == NULL)
     {
         std::cout << "Renderer was not created. " << SDL_GetError() << std::endl;
@@ -23,25 +31,25 @@ RendererWindow::RendererWindow(int Width, int Height,const char *title)
 }
 void RendererWindow::moveDown()
 {
-    if(head.y >= 500)
+    if (head.y >= 500)
         head.y = 0;
     head.y += 10;
 }
 void RendererWindow::moveUp()
 {
-    if(head.y <= 0)
+    if (head.y <= 0)
         head.y = 500;
     head.y -= 10;
 }
 void RendererWindow::moveLeft()
 {
-    if(head.x <= 0)
+    if (head.x <= 0)
         head.x = 500;
     head.x -= 10;
 }
 void RendererWindow::moveRight()
 {
-    if(head.x >= 500)
+    if (head.x >= 500)
         head.x = 0;
     head.x += 10;
 }
@@ -64,6 +72,49 @@ void RendererWindow::drawBackGround()
 }
 void RendererWindow::drawHead()
 {
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255 , 255);
-    SDL_RenderFillRect(renderer,&head);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderFillRect(renderer, &head);
+}
+void RendererWindow::update()
+{
+    srand(time(nullptr));
+    int i=10;
+    if(bodySize > 1)
+    {
+    std::for_each(body.begin(), body.end(), [&](SDL_Rect &cell){
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderFillRect(renderer, &cell);
+    });}
+}
+void RendererWindow::drawApple()
+{
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_RenderFillRect(renderer, &apple);
+}
+void RendererWindow::checkCollisionApple()
+{
+    if (apple.x == head.x && apple.y == head.y)
+    {
+        bodySize++;
+        apple.x = (rand() % 40 + 1)*10;
+        apple.y = (rand() % 40 + 1)*10;
+    }
+}
+void RendererWindow::growBody()
+{
+    if(bodySize < 2) return;
+    body.push_front(head);
+    while(body.size() > bodySize)
+        body.pop_back();
+}
+void RendererWindow::checkCollisionBody()
+{
+    std::for_each(body.begin(), body.end(), [&](SDL_Rect &cell){
+        if(head.x == cell.x && head.y == cell.y)
+        {
+            bodySize =1;
+            
+        }
+        
+    });
 }

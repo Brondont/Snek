@@ -1,6 +1,9 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <vector>
+
+
 
 #include "render.hpp"
 
@@ -33,25 +36,30 @@ int main(int argc, char *argv[])
             if(event.type == SDL_QUIT) {gamerunning = false;}
             if(event.type == SDL_KEYDOWN)
             {
-                if(event.key.keysym.sym == SDLK_d) {dir = RIGHT;}
-                if(event.key.keysym.sym == SDLK_a) {dir = LEFT;}
-                if(event.key.keysym.sym == SDLK_w) {dir = UP;}
-                if(event.key.keysym.sym == SDLK_s) {dir = DOWN;}
+                if(event.key.keysym.sym == SDLK_d) {if(dir != LEFT) dir = RIGHT;}
+                if(event.key.keysym.sym == SDLK_a) {if(dir != RIGHT) dir = LEFT;}
+                if(event.key.keysym.sym == SDLK_w) {if (dir != DOWN) dir = UP;}
+                if(event.key.keysym.sym == SDLK_s) {if (dir != UP) dir = DOWN;}
             }
         }
         switch(dir)
             {
-                case RIGHT: window.moveRight(); break;
-                case LEFT: window.moveLeft(); break;
-                case UP: window.moveUp(); break;
-                case DOWN: window.moveDown(); break;
+                case RIGHT: if(dir != LEFT) window.moveRight(); break;
+                case LEFT: if(dir != RIGHT) window.moveLeft(); break;
+                case UP: if (dir != DOWN) window.moveUp(); break;
+                case DOWN: if (dir != UP) window.moveDown(); break;
             }
         
         window.drawBackGround();
         window.clearRenderer();
         window.drawHead();
+        window.drawApple();
+        window.checkCollisionApple();
+        window.checkCollisionBody();
+        window.growBody();
+        window.update();
         window.display();
-        SDL_Delay(25);
+        SDL_Delay(40);
     }
     window.exit();
     SDL_Quit();
