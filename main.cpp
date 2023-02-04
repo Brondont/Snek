@@ -29,8 +29,11 @@ int main(int argc, char *argv[])
         RIGHT
     };
     int dir = 0;
+    int fps = 25;
+    int dt = 1000/fps;
     while(gamerunning)
     {   
+        int startloop = SDL_GetTicks();
         while(SDL_PollEvent(&event))
         {
             if(event.type == SDL_QUIT) {gamerunning = false;}
@@ -51,15 +54,15 @@ int main(int argc, char *argv[])
             }
         
         window.drawBackGround();
-        window.clearRenderer();
-        window.drawHead();
-        window.drawApple();
-        window.checkCollisionApple();
         window.checkCollisionBody();
-        window.growBody();
+        window.checkCollisionApple();
         window.update();
+        window.clearRenderer();
+        window.draw();
         window.display();
-        SDL_Delay(40);
+        int delta = SDL_GetTicks() - startloop;
+        if(delta < dt)
+            SDL_Delay((dt - delta));
     }
     window.exit();
     SDL_Quit();
