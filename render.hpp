@@ -16,6 +16,7 @@ public:
     void clearRenderer();
     void checkCollisionApple();
     void checkCollisionBody();
+    void checkCollisionBigApple();
     void drawBackGround();
     void draw();
     void display();

@@ -3,8 +3,6 @@
 #include <SDL2/SDL_image.h>
 #include <vector>
 
-
-
 #include "render.hpp"
 
 const int HEIGHT = 500, WIDTH = 500;
@@ -14,7 +12,7 @@ int main(int argc, char *argv[])
 {
     if(SDL_Init(SDL_INIT_EVERYTHING) > 0)
     {
-        std::cout << "SDL elemetns did not intialzie" << std::endl;
+       
         return -1;
     }
 
@@ -56,6 +54,7 @@ int main(int argc, char *argv[])
         window.drawBackGround();
         window.checkCollisionBody();
         window.checkCollisionApple();
+        window.checkCollisionBigApple();
         window.update();
         window.clearRenderer();
         window.draw();
