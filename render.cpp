@@ -1,19 +1,25 @@
-#include "render.hpp"
-#include <cstdlib>
-#include <ctime>
 #include <vector>
 #include <algorithm>
 #include <deque>
 #include <string>
+#include <ctime>
+
+#include "render.hpp"
+#include "apple.hpp"
 
 SDL_Rect head{250, 250, 10, 10};
-SDL_Rect apple{(rand() % 40 + 1) * 10, (rand() % 40 + 1) * 10, 10, 10};
-SDL_Rect bigApple{(rand()% 40 +1) * 10, (rand() % 40 * 1 * 10), 20, 20};
+std::deque<SDL_Rect> body = {};
+
+SDL_Rect PauseRect{110,180, 300,100};
+SDL_Rect scoreRect{0, 0, 100, 20};
+SDL_Rect endScreen{50, 70, 400, 200};
+SDL_Rect endScreenContinue{50, 280, 400, 100};
+
 bool bigAppleRen = false;
 bool smallAppleRen = false;
-SDL_Rect score{0, 0, 100, 20};
+bool paused = false;
+
 int speed = 10;
-std::deque<SDL_Rect> body = {};
 int bodySize = 0;
 
 RendererWindow::RendererWindow(int Width, int Height, const char *title)
@@ -37,34 +43,6 @@ RendererWindow::RendererWindow(int Width, int Height, const char *title)
     }
 }
 
-void RendererWindow::moveDown()
-{
-    if (head.y >= 500)
-        head.y = 0;
-    head.y += speed;
-}
-
-void RendererWindow::moveUp()
-{
-    if (head.y <= 0)
-        head.y = 500;
-    head.y -= speed;
-}
-
-void RendererWindow::moveLeft()
-{
-    if (head.x <= 0)
-        head.x = 500;
-    head.x -= speed;
-}
-
-void RendererWindow::moveRight()
-{
-    if (head.x >= 500)
-        head.x = 0;
-    head.x += speed;
-}
-
 void RendererWindow::exit()
 {
     SDL_DestroyWindow(window);
@@ -86,77 +64,104 @@ void RendererWindow::drawBackGround()
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 }
 
-void RendererWindow::draw()
+void RendererWindow::drawScore(int gameScore)
 {
-    int bigAppleChance = rand()%50;
-    std::cout << bigAppleChance << std::endl;
-    if((bigAppleChance == 1 && !bigAppleRen) || bigAppleRen)
-    {
-        SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
-        SDL_RenderFillRect(renderer, &bigApple);
-        bigAppleRen = true;
-    }
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-    SDL_RenderFillRect(renderer, &apple);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderFillRect(renderer, &head);
-    if (bodySize > 1)
-    {
-        std::for_each(body.begin(), body.end(), [&](SDL_Rect &cell)
-                      {
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderFillRect(renderer, &cell); });
-    }
-    TTF_Font *textfont = TTF_OpenFont("font/bit5x3.ttf", 12);
+    TTF_Font *font = TTF_OpenFont("font/bit5x3.ttf",12);
     SDL_Color textColor = {255, 255, 255};
-    const char *sscore = ("score: " + std::to_string(bodySize * 10)).c_str();
-    SDL_Surface *tempsurf = TTF_RenderText_Solid(textfont, sscore, textColor);
+    const char *sscore = ("score: " + std::to_string(gameScore *10)).c_str();
+    SDL_Surface *tempsurf = TTF_RenderText_Solid(font, sscore, textColor);
     SDL_Texture *scoretext = SDL_CreateTextureFromSurface(renderer, tempsurf);
-    SDL_RenderCopy(renderer, scoretext, NULL, &score);
+    SDL_RenderCopy(renderer, scoretext, NULL, &scoreRect);
     SDL_DestroyTexture(scoretext);
     SDL_FreeSurface(tempsurf);
 }
 
-void RendererWindow::update()
+void RendererWindow::drawSnake(SDL_Rect *head, std::deque<SDL_Rect> *body)
 {
-    // grow body
-    if (bodySize < 1)
-        return;
-    body.push_front(head);
-    while (body.size() > bodySize)
-        body.pop_back();
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderFillRect(renderer,head);
+    for_each((*body).begin(), (*body).end(), [&](SDL_Rect &cell)
+    {
+        SDL_RenderFillRect(renderer,&cell);
+    });
 }
 
-void RendererWindow::checkCollisionApple()
+void RendererWindow::drawApple(SDL_Rect *apple, std::vector<Uint8> RGB)
 {
-    srand(time(nullptr));
-    if (apple.x == head.x && apple.y == head.y)
-    {
-        bodySize += 2;
-        apple.x = (rand() % 40 + 1) * 10;
-        apple.y = (rand() % 40 + 1) * 10;
-    }
-}
-void RendererWindow::checkCollisionBigApple()
-{
-    srand(time(nullptr));
-    if(bigApple.x + 10 >= head.x && bigApple.x <= head.x + 10
-    && bigApple.y + 10 >= head.y && bigApple.y <= head.y + 10 && bigAppleRen)
-    {
-        bodySize += 8;
-        bigApple.x = (rand() % 40 + 1) *10;
-        bigApple.y = (rand() % 40 + 1) *10;
-        bigAppleRen = false;
-    }
+    SDL_SetRenderDrawColor(renderer, RGB[0], RGB[1], RGB[2], 255);
+    SDL_RenderFillRect(renderer, apple);
 }
 
-void RendererWindow::checkCollisionBody()
+// void RendererWindow::update()
+// {
+//     body.push_front(head);
+//     while (body.size() > bodySize)
+//         body.pop_back();
+// }
+
+// void RendererWindow::checkCollisionApple()
+// {
+//     if (redApple.getx() == head.x && redApple.gety() == head.y)
+//     {
+//         bodySize += 2;
+//         redApple.setx((rand() % 40 + 1) * 10);
+//         redApple.sety((rand() % 40 + 1) * 10);
+//     }
+//     std::for_each(body.begin(), body.end(), [&](SDL_Rect &cell)
+//     {
+//         if(cell.x == redApple.getx() && cell.y == redApple.gety())
+//         {
+//             bodySize+= 2;
+//             redApple.setx((rand() % 40 + 1) * 10);
+//             redApple.sety((rand() % 40 + 1) * 10);
+//         }
+//     });
+// }
+
+// void RendererWindow::checkCollisionBigApple()
+// {
+//     if(bigApple.getx() + bigApple.getw()/2 >= head.x && bigApple.getx() <= head.x + head.w
+//     && bigApple.gety() + bigApple.geth()/2 >= head.y && bigApple.gety() <= head.y + head.h && bigAppleRen)
+//     {
+//         bodySize += 8;
+//         bigApple.setx((rand() % 40 + 1) *10);
+//         bigApple.sety((rand() % 40 + 1) *10);
+//         bigAppleRen = false;
+//     }
+// }
+
+bool RendererWindow::pause()
 {
-    std::for_each(body.begin(), body.end(), [&](SDL_Rect &cell)
-                  {
-                      if (head.x == cell.x && head.y == cell.y)
-                      {
-                          bodySize = 1;
-                      }
-                  });
+    paused = paused == true ? false : true;   
+    if(paused)
+        return 1;
+    else
+        return 0;
+}
+
+void RendererWindow::pauseMenu()
+{
+    TTF_Font *font = TTF_OpenFont("font/bit5x3.ttf",12);
+    SDL_Color textColor = {255, 255, 255};
+    SDL_Surface *tempsurf = TTF_RenderText_Solid(font,"Paused",textColor);
+    SDL_Texture *pause = SDL_CreateTextureFromSurface(renderer,tempsurf);
+    SDL_RenderCopy(renderer, pause, NULL, &PauseRect);
+    SDL_FreeSurface(tempsurf);
+    SDL_DestroyTexture(pause);
+}
+
+void RendererWindow::deathMenu()
+{
+    TTF_Font *font = TTF_OpenFont("font/bit5x3.ttf",12);
+    SDL_Color textColor = {255, 255, 255};
+    SDL_Surface *tmpsurf = TTF_RenderText_Solid(font, "Game Over", textColor);
+    SDL_Surface *tmpsurf2 = TTF_RenderText_Solid(font, "Press R to Restart..", textColor);
+    SDL_Texture *end = SDL_CreateTextureFromSurface(renderer, tmpsurf);
+    SDL_Texture *endContinue = SDL_CreateTextureFromSurface(renderer, tmpsurf2);
+    SDL_RenderCopy(renderer, end, NULL, &endScreen);
+    SDL_RenderCopy(renderer, endContinue, NULL, &endScreenContinue);
+    SDL_FreeSurface(tmpsurf);
+    SDL_FreeSurface(tmpsurf2);
+    SDL_DestroyTexture(end);
+    SDL_DestroyTexture(endContinue);
 }

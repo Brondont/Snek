@@ -2,63 +2,133 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <vector>
+#include <cstdlib>
+#include <ctime>
 
 #include "render.hpp"
+#include "apple.hpp"
+#include "player.hpp"
 
 const int HEIGHT = 500, WIDTH = 500;
-bool gamerunning = false;
 
-int main(int argc, char *argv[])
-{
-    if(SDL_Init(SDL_INIT_EVERYTHING) > 0)
-    {
-       
-        return -1;
-    }
-
-    RendererWindow window = RendererWindow(WIDTH,HEIGHT,"Game");
-    gamerunning = true;
-    SDL_Event event;
-
-    enum Direction {
+enum Direction {
         DOWN,
         UP,
         LEFT,
         RIGHT
     };
-    int dir = 0;
+    int game = 0;
+    enum GameStatus {
+        RUNNING,
+        PAUSED,
+        OVER
+    };
+
+    int dir = 2;
     int fps = 25;
     int dt = 1000/fps;
+const Uint8 *keyboard = SDL_GetKeyboardState(NULL);
+
+int InitGame()
+{
+    SDL_Init(SDL_INIT_VIDEO);
+    TTF_Init();
+    return true;
+}
+
+bool gamerunning = InitGame();
+
+RendererWindow window(WIDTH,HEIGHT,"Snek");
+
+Snake snek(250,250,10,10);
+Apple redApple("Red", (rand() % 40 + 1) * 10, (rand() % 40 + 1) * 10, 10, 10, 255, 0, 0);
+Apple bigApple("Big", (rand()% 40 +1) * 10, (rand() % 40 * 1 * 10), 20, 20, 255, 0, 255);
+
+void mainGameLoop()
+{
+    if(keyboard[SDL_SCANCODE_A])    if(dir != RIGHT)   dir = LEFT;
+    if(keyboard[SDL_SCANCODE_D])    if(dir != LEFT)    dir = RIGHT;
+    if(keyboard[SDL_SCANCODE_W])    if(dir != DOWN)    dir = UP;
+    if(keyboard[SDL_SCANCODE_S])    if(dir != UP)      dir = DOWN;
+
+    switch(dir)
+        {
+            case LEFT:  snek.moveLeft();  break;
+            case RIGHT: snek.moveRight(); break;
+            case UP:    snek.moveUp();    break;
+            case DOWN:  snek.moveDown();  break;
+        }
+    window.drawBackGround();
+    window.clearRenderer();
+    snek.checkCollisionWith(&redApple);
+    snek.checkCollisionWith(&bigApple);
+    snek.update();
+    window.drawSnake(snek.getHead(), snek.getBody());
+    window.drawApple(redApple.getRect(), redApple.getColor());
+    // window.drawApple(bigApple.getRect(), bigApple.getColor());
+    // window.drawApple(poisonApple.getRect(), poisonApple.getColor());
+    window.drawScore(snek.getSize());
+    window.display();
+}
+
+void resetGame()
+{
+    snek.setx(250);
+    snek.sety(250);
+    snek.resetSize();
+    dir = 2;
+}
+
+void pauseMenu()
+{
+    window.pauseMenu();
+    window.display();
+}
+
+void gameOver()
+{
+    window.drawBackGround();
+    window.clearRenderer();
+    window.deathMenu();
+    window.drawScore(snek.getSize());
+    window.display();
+    if(keyboard[SDL_SCANCODE_R])
+    {
+        resetGame();
+        game = 0;
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    srand(time(nullptr));
     while(gamerunning)
     {   
         int startloop = SDL_GetTicks();
+
+        SDL_Event event;
+
         while(SDL_PollEvent(&event))
         {
-            if(event.type == SDL_QUIT) {gamerunning = false;}
-            if(event.type == SDL_KEYDOWN)
-            {
-                if(event.key.keysym.sym == SDLK_d) {if(dir != LEFT) dir = RIGHT;}
-                if(event.key.keysym.sym == SDLK_a) {if(dir != RIGHT) dir = LEFT;}
-                if(event.key.keysym.sym == SDLK_w) {if (dir != DOWN) dir = UP;}
-                if(event.key.keysym.sym == SDLK_s) {if (dir != UP) dir = DOWN;}
-            }
+            if(event.type == SDL_QUIT)
+                gamerunning = false;
         }
-        switch(dir)
+        if(keyboard[SDL_SCANCODE_P] && game != 2)    
+        {   
+            SDL_Delay(100);
+            game = window.pause();
+        }
+        if(snek.Death())
             {
-                case RIGHT: if(dir != LEFT) window.moveRight(); break;
-                case LEFT: if(dir != RIGHT) window.moveLeft(); break;
-                case UP: if (dir != DOWN) window.moveUp(); break;
-                case DOWN: if (dir != UP) window.moveDown(); break;
+                game = 2;
             }
-        
-        window.drawBackGround();
-        window.checkCollisionBody();
-        window.checkCollisionApple();
-        window.checkCollisionBigApple();
-        window.update();
-        window.clearRenderer();
-        window.draw();
-        window.display();
+        if(game == 0)
+            mainGameLoop();
+        else if(game == 1)
+            pauseMenu();
+        else if(game == 2)
+            gameOver();
+
         int delta = SDL_GetTicks() - startloop;
         if(delta < dt)
             SDL_Delay((dt - delta));
@@ -67,3 +137,4 @@ int main(int argc, char *argv[])
     SDL_Quit();
     return 0;
 }
+
