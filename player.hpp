@@ -22,7 +22,7 @@ public:
     void moveLeft();
     void moveRight();
     bool Death();
-    void checkCollisionWith(Apple *apple);
+    void checkCollisionWith(Apple *apple, bool *bigAppleTrue);
     void update();
     void resetSize();
     SDL_Rect *getHead();
